@@ -71,3 +71,34 @@ def delete_user(user_id):
     db.session.delete(user)
     db.session.commit()
     return jsonify(message="deleted"), 200
+
+
+@api_bp.post("/login")
+def login():
+    data = request.get_json(force=True, silent=True) or {}
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        abort(400, description="email and password are required")
+
+    user = User.query.filter_by(email=email).first()
+    if not user or not user.check_password(password):
+        abort(401, description="invalid credentials")
+
+    needs = None
+    if user.needs:
+        try:
+            needs = json.loads(user.needs)
+        except json.JSONDecodeError:
+            needs = user.needs
+
+    user_payload = {
+        "id": user.id,
+        "email": user.email,
+        "name": user.name,
+        "needs": needs,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+    }
+
+    return jsonify(message="login successful", user=user_payload), 200
