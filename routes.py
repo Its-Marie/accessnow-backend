@@ -1,8 +1,9 @@
-from flask import Blueprint, request, jsonify, abort
-from app import db
+from flask import Blueprint, request, jsonify, abort, current_app
+from extensions import db   
 from models import User
 from schemas import user_schema, users_schema
 import json
+import os
 
 api_bp = Blueprint("api", __name__)
 data_bp = Blueprint("data", __name__)
