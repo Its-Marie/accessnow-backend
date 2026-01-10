@@ -4,6 +4,10 @@ from flask_migrate import Migrate
 from flask_marshmallow import Marshmallow
 from config import Config
 from flask_cors import CORS
+from routes import api_bp, data_bp
+
+app.register_blueprint(api_bp, url_prefix="/api")
+app.register_blueprint(data_bp, url_prefix="/api")
 
 
 db = SQLAlchemy()

@@ -5,6 +5,7 @@ from schemas import user_schema, users_schema
 import json
 
 api_bp = Blueprint("api", __name__)
+data_bp = Blueprint("data", __name__)
 
 # GET /api/users
 @api_bp.get("/users")
@@ -102,3 +103,13 @@ def login():
     }
 
     return jsonify(message="login successful", user=user_payload), 200
+
+@data_bp.get("/toilets")
+def get_toilets():
+    base = current_app.root_path
+    path = os.path.join(base, "Datapoints", "toilets.json")
+    if not os.path.exists(path):
+        abort(404, description="toilets dataset missing")
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        return jsonify(data)
