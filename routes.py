@@ -6,6 +6,10 @@ from pyproj import Transformer
 import json
 import os
 
+TRANSFORMER_25833_TO_4326 = Transformer.from_crs(
+    "EPSG:25833", "EPSG:4326", always_xy=True
+)
+
 api_bp = Blueprint("api", __name__)
 data_bp = Blueprint("data", __name__)
 
@@ -115,14 +119,31 @@ def get_toilets():
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    transformer = Transformer.from_crs("EPSG:25833", "EPSG:4326", always_xy=True)
-
-    for feature in data.get("features",[]):
+    for feature in data.get("features", []):
         geom = feature.get("geometry")
         if not geom or geom.get("type") != "Point":
             continue
         x,y = geom["coordinates"] 
-        lon, lat = transformer.transform(x, y)
+        lon, lat = TRANSFORMER_25833_TO_4326.transform(x, y)
         geom["coordinates"] = [lon, lat]
 
-    return jsonify(data)
+    return jsonify(data), 200
+
+@data_bp.get("/accessible_parking")
+def get_accessible_parking():
+    base = current_app.root_path
+    path = os.path.join(base, "Datapoints", "accessible_parking.json")
+    if not os.path.exists(path):
+        abort(404, description="parking dataset missing")
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    for feature in data.get("features", []):
+        geom = feature.get("geometry")
+        if not geom or geom.get("type") != "Point":
+            continue
+        x,y = geom["coordinates"] 
+        lon, lat = TRANSFORMER_25833_TO_4326.transform(x, y)
+        geom["coordinates"] = [lon, lat]
+
+    return jsonify(data), 200
