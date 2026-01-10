@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, abort, current_app
 from extensions import db   
 from models import User
 from schemas import user_schema, users_schema
+from pyproj import Transformer
 import json
 import os
 
@@ -113,4 +114,15 @@ def get_toilets():
         abort(404, description="toilets dataset missing")
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
-        return jsonify(data)
+
+    transformer = Transformer.from_crs("EPSG:25833", "EPSG:4326", always_xy=True)
+
+    for feature in data.get("features",[]):
+        geom = feature.get("geometry")
+        if not geom or geom.get("type") != "Point":
+            continue
+        x,y = geom["coordinates"] 
+        lon, lat = transformer.transform(x, y)
+        geom["coordinates"] = [lon, lat]
+
+    return jsonify(data)
