@@ -147,3 +147,23 @@ def get_accessible_parking():
         geom["coordinates"] = [lon, lat]
 
     return jsonify(data), 200
+
+
+@data_bp.get("/elevators")
+def get_elevators():
+    base = current_app.root_path
+    path = os.path.join(base, "Datapoints", "elevators.json")
+    if not os.path.exists(path):
+        abort(404, description="elevators dataset missing")
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    for feature in data.get("features", []):
+        geom = feature.get("geometry")
+        if not geom or geom.get("type") != "Point":
+            continue
+        x,y = geom["coordinates"] 
+        lon, lat = TRANSFORMER_25833_TO_4326.transform(x, y)
+        geom["coordinates"] = [lon, lat]
+
+    return jsonify(data), 200
