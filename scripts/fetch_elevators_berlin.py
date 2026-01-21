@@ -37,7 +37,7 @@ def to_feature(el):
             return None
         lon, lat = c["lon"], c["lat"]
 
-    # transform to EPSG:25833 like your Berlin Open Data files
+    # transform to EPSG:25833 Berlin Open Data files
     x, y = transformer.transform(lon, lat)
 
     tags = el.get("tags", {})
@@ -60,7 +60,6 @@ def main():
     data = None
     last_error = None
     
-    # Versuche jeden Server in der Liste
     for url in OVERPASS_URLS:
         try:
             print(f"Versuche Server: {url}")
@@ -86,7 +85,7 @@ def main():
     fc = {"type": "FeatureCollection", "features": features}
 
     out_path = Path("Datapoints/elevators.json")
-    out_path.parent.mkdir(exist_ok=True)  # Stelle sicher, dass der Ordner existiert
+    out_path.parent.mkdir(exist_ok=True)  
     out_path.write_text(json.dumps(fc, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"✓ {len(features)} Aufzüge nach {out_path} geschrieben")
 
