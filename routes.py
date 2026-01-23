@@ -55,7 +55,6 @@ def update_user(user_id):
     data = request.get_json(force=True, silent=True) or {}
 
     if "email" in data:
-        # prevent duplicate emails
         conflict = User.query.filter(User.email == data["email"], User.id != user_id).first()
         if conflict:
             abort(409, description="email already in use")
@@ -266,7 +265,6 @@ def calculate_osrm_route(start, destination, profile='foot'):
         return None
 
 def load_filtered_pois(show_toilets, show_elevators, show_parking):
-    """Load POIs based on filter settings"""
     base = current_app.root_path
     all_pois = {"type": "FeatureCollection", "features": []}
     
