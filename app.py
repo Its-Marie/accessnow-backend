@@ -14,8 +14,7 @@ def create_app():
     ma.init_app(app)
     migrate.init_app(app, db)
 
-    # import models so migrations see them
-    from models import User  # noqa: F401
+    from models import User  
 
     # register blueprints
     from routes import api_bp, data_bp
