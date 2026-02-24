@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, abort, current_app
 from extensions import db   
-from models import User
-from schemas import user_schema, users_schema
+from models import User, Favorite
+from schemas import user_schema, users_schema, favorite_schema, favorites_schema
 from pyproj import Transformer
 import json
 import os
@@ -42,7 +42,11 @@ def create_user():
     if User.query.filter_by(email=email).first():
         abort(409, description="email already exists")
 
-    user = User(email=email, name=name, needs=json.dumps(needs) if needs else None)
+    if needs is not None and not isinstance(needs, dict):
+        abort(400, description="needs must be an object (JSON)")
+
+    user = User(email=email, name=name, needs=needs)
+
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
@@ -67,8 +71,10 @@ def update_user(user_id):
         user.set_password(data["password"])
 
     if "needs" in data:
-        user.needs = json.dumps(data["needs"]) if data["needs"] is not None else None
-
+        if data["needs"] is not None and not isinstance(data["needs"], dict):
+            abort(400, description="needs must be an object (JSON)")
+        user.needs = data["needs"]
+    
     db.session.commit()
     return user_schema.jsonify(user), 200
 
@@ -77,6 +83,35 @@ def update_user(user_id):
 def delete_user(user_id):
     user = User.query.get_or_404(user_id)
     db.session.delete(user)
+    db.session.commit()
+    return jsonify(message="deleted"), 200
+
+@api_bp.get("/users/<int:user_id>/favorites")
+def list_favorites(user_id):
+    User.query.get_or_404(user_id)
+    favs = Favorite.query.filter_by(user_id=user_id).order_by(Favorite.id.desc()).all()
+    return favorites_schema.jsonify(favs), 200
+
+
+@api_bp.post("/users/<int:user_id>/favorites")
+def add_favorite(user_id):
+    User.query.get_or_404(user_id)
+    data = request.get_json(force=True, silent=True) or {}
+    route_data = data.get("route_data")
+
+    if route_data is None or not isinstance(route_data, dict):
+        abort(400, description="route_data must be an object (JSON)")
+
+    fav = Favorite(user_id=user_id, route_data=route_data)
+    db.session.add(fav)
+    db.session.commit()
+    return favorite_schema.jsonify(fav), 201
+
+
+@api_bp.delete("/favorites/<int:fav_id>")
+def delete_favorite(fav_id):
+    fav = Favorite.query.get_or_404(fav_id)
+    db.session.delete(fav)
     db.session.commit()
     return jsonify(message="deleted"), 200
 
@@ -94,12 +129,7 @@ def login():
     if not user or not user.check_password(password):
         abort(401, description="invalid credentials")
 
-    needs = None
-    if user.needs:
-        try:
-            needs = json.loads(user.needs)
-        except json.JSONDecodeError:
-            needs = user.needs
+    needs = user.needs
 
     user_payload = {
         "id": user.id,
