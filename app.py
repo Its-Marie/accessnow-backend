@@ -1,7 +1,7 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 from config import Config
-from extensions import db, ma, migrate
+from extensions import db, ma, migrate, jwt
 
 def create_app():
     app = Flask(__name__)
@@ -13,8 +13,7 @@ def create_app():
     db.init_app(app)
     ma.init_app(app)
     migrate.init_app(app, db)
-
-    from models import User  
+    jwt.init_app(app)
 
     # register blueprints
     from routes import api_bp, data_bp

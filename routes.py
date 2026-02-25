@@ -3,6 +3,7 @@ from extensions import db
 from models import User, Favorite
 from schemas import user_schema, users_schema, favorite_schema, favorites_schema
 from pyproj import Transformer
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import json
 import os
 import requests
@@ -20,6 +21,20 @@ data_bp = Blueprint("data", __name__)
 def list_users():
     users = User.query.order_by(User.id.desc()).all()
     return users_schema.jsonify(users), 200
+
+@api_bp.get("/me")
+@jwt_required()
+def me():
+    user_id = get_jwt_identity()
+    user = User.query.get_or_404(user_id)
+
+    return jsonify(
+        id=user_id,
+        email=user.email,
+        name=user.name,
+        needs=user.needs,
+        created_at=user.created_at.isoformat() if user.created_at else None,
+    ), 200
 
 # GET /api/users/<id>
 @api_bp.get("/users/<int:user_id>")
@@ -86,16 +101,18 @@ def delete_user(user_id):
     db.session.commit()
     return jsonify(message="deleted"), 200
 
-@api_bp.get("/users/<int:user_id>/favorites")
-def list_favorites(user_id):
-    User.query.get_or_404(user_id)
+@api_bp.get("/users/me/favorites")
+@jwt_required()
+def my_favorites():
+    user_id = get_jwt_identity()
     favs = Favorite.query.filter_by(user_id=user_id).order_by(Favorite.id.desc()).all()
     return favorites_schema.jsonify(favs), 200
 
 
-@api_bp.post("/users/<int:user_id>/favorites")
-def add_favorite(user_id):
-    User.query.get_or_404(user_id)
+@api_bp.post("/users/me/favorites")
+@jwt_required()
+def add_my_favorite():
+    user_id = get_jwt_identity()
     data = request.get_json(force=True, silent=True) or {}
     route_data = data.get("route_data")
 
@@ -128,6 +145,8 @@ def login():
     user = User.query.filter_by(email=email).first()
     if not user or not user.check_password(password):
         abort(401, description="invalid credentials")
+    
+    access_token = create_access_token(identity=user.id)
 
     needs = user.needs
 
@@ -139,7 +158,11 @@ def login():
         "created_at": user.created_at.isoformat() if user.created_at else None,
     }
 
-    return jsonify(message="login successful", user=user_payload), 200
+    return jsonify(
+        message="login successful", 
+        access_token=access_token,
+        user=user_payload
+    ), 200
 
 @data_bp.get("/toilets")
 def get_toilets():
