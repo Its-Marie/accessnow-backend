@@ -1,3 +1,4 @@
+import os
 from flask import Flask, jsonify
 from flask_cors import CORS
 from config import Config
@@ -7,7 +8,9 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    CORS(app, origins=[
+    os.getenv("FRONTEND_URL", "http://localhost:5173")
+])
 
     # init extensions
     db.init_app(app)
