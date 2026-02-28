@@ -18,7 +18,7 @@ MarkupSafe==3.0.3
 marshmallow==4.2.0
 marshmallow-sqlalchemy==1.4.2
 packaging==26.0
-psycopg-binary==3.3.3
+psycopg[binary]==3.3.3
 PyJWT==2.11.0
 pyproj==3.6.1
 python-dotenv==1.2.1
